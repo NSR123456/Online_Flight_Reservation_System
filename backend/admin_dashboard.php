@@ -1,6 +1,7 @@
 <?php
 // Admin Dashboard Backend Logic
-
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 $servername = "localhost";
 $username = "panjas";
 $password = "Panjas@cse1";
@@ -46,11 +47,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = "Error: " . $conn->error;
         }
     }
+
+    // Cab Management Logic
+    if (isset($_POST['add_cab'])) {
+        $reg_no = $_POST['reg_no'];
+        $capacity = $_POST['capacity'];
+        $driver_name = $_POST['driver_name'];
+        $phone_no = $_POST['phone_no'];
+        $model = $_POST['model'];
+
+        $sql = "INSERT INTO Cabs (reg_no, capacity, driver_name, phone_no, model)
+                VALUES ('$reg_no', '$capacity', '$driver_name', '$phone_no', '$model')";
+        if ($conn->query($sql) === TRUE) {
+            $success = "Cab added successfully!";
+        } else {
+            $error = "Error: " . $conn->error;
+        }
+    }
+
+    // Airline Management Logic
+    if (isset($_POST['add_airline'])) {
+        $airline_id = $_POST['airline_id'];
+        $airline_name = $_POST['airline_name'];
+        $headquarter = $_POST['headquarter'];
+        $contact = $_POST['contact'];
+        $website = $_POST['website'];
+        $services = $_POST['services'];
+        $operating_regions = $_POST['operating_regions'];
+
+        $sql = "INSERT INTO Airlines (airline_id, airline_name, headquarter, contact, website, services, operating_regions)
+                VALUES ('$airline_id', '$airline_name', '$headquarter', '$contact', '$website', '$services', '$operating_regions')";
+        if ($conn->query($sql) === TRUE) {
+            $success = "Airline added successfully!";
+        } else {
+            $error = "Error: " . $conn->error;
+        }
+    }
 }
 
 // Fetch Data for Display
 $flights = $conn->query("SELECT * FROM Flights");
 $customers = $conn->query("SELECT * FROM Customers");
+$cabs = $conn->query("SELECT * FROM Cabs");
+$airlines = $conn->query("SELECT * FROM Airlines");
 ?>
 
 <!DOCTYPE html>
@@ -96,58 +135,144 @@ $customers = $conn->query("SELECT * FROM Customers");
             </form>
         </div>
 
-        <!-- Flights List -->
-        <h2 class="text-2xl font-semibold mb-4">Available Flights</h2>
-        <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-lg mb-8">
-            <thead>
-                <tr>
-                    <th class="p-4 text-left border-b">Flight Number</th>
-                    <th class="p-4 text-left border-b">Flight Name</th>
-                    <th class="p-4 text-left border-b">Seats Available</th>
-                    <th class="p-4 text-left border-b">Engine</th>
-                    <th class="p-4 text-left border-b">Capacity</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($flight = $flights->fetch_assoc()) { ?>
-                <tr>
-                    <td class="p-4 border-b"><?php echo $flight['flight_no']; ?></td>
-                    <td class="p-4 border-b"><?php echo $flight['flight_name']; ?></td>
-                    <td class="p-4 border-b"><?php echo $flight['no_of_seat']; ?></td>
-                    <td class="p-4 border-b"><?php echo $flight['engine']; ?></td>
-                    <td class="p-4 border-b"><?php echo $flight['capacity']; ?></td>
-                </tr>
-                <?php } ?>
-            </tbody>
-        </table>
+        <!-- Cab Management Form -->
+        <div class="form-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Add New Cab</h2>
+            <form method="POST" action="">
+                <input type="text" name="reg_no" placeholder="Registration Number" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="number" name="capacity" placeholder="Capacity" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="driver_name" placeholder="Driver's Name" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="phone_no" placeholder="Phone Number" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="model" placeholder="Cab Model" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" name="add_cab" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Add Cab</button>
+            </form>
+        </div>
 
-        <!-- Customers List -->
-        <h2 class="text-2xl font-semibold mb-4">Customers</h2>
-        <table class="min-w-full bg-white border border-gray-300 rounded-lg shadow-lg">
-            <thead>
-                <tr>
-                    <th class="p-4 text-left border-b">Passport ID</th>
-                    <th class="p-4 text-left border-b">Name</th>
-                    <th class="p-4 text-left border-b">Date of Birth</th>
-                    <th class="p-4 text-left border-b">Nationality</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($customer = $customers->fetch_assoc()) { ?>
-                <tr>
-                    <td class="p-4 border-b"><?php echo $customer['passport_id']; ?></td>
-                    <td class="p-4 border-b"><?php echo $customer['name']; ?></td>
-                    <td class="p-4 border-b"><?php echo $customer['dob']; ?></td>
-                    <td class="p-4 border-b"><?php echo $customer['nationality']; ?></td>
-                </tr>
-                <?php } ?>
-            </tbody>
-        </table>
+        <!-- Airline Management Form -->
+        <div class="form-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Add New Airline</h2>
+            <form method="POST" action="">
+                <input type="text" name="airline_id" placeholder="Airline ID" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="airline_name" placeholder="Airline Name" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="headquarter" placeholder="Headquarter" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="contact" placeholder="Contact Number" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="website" placeholder="Website" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="services" placeholder="Services" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="operating_regions" placeholder="Operating Regions" required class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" name="add_airline" class="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Add Airline</button>
+            </form>
+        </div>
+
+        <!-- Display Flights, Customers, Cabs, Airlines -->
+        <!-- Flights Table -->
+        <div class="table-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Flight List</h2>
+            <table class="table-auto w-full text-left">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3">Flight No</th>
+                        <th class="p-3">Flight Name</th>
+                        <th class="p-3">Seats Available</th>
+                        <th class="p-3">Engine</th>
+                        <th class="p-3">Capacity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $flights->fetch_assoc()): ?>
+                        <tr>
+                            <td class="p-3"><?= $row['flight_no'] ?></td>
+                            <td class="p-3"><?= $row['flight_name'] ?></td>
+                            <td class="p-3"><?= $row['no_of_seat'] ?></td>
+                            <td class="p-3"><?= $row['engine'] ?></td>
+                            <td class="p-3"><?= $row['capacity'] ?></td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cabs Table -->
+        <div class="table-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Cab List</h2>
+            <table class="table-auto w-full text-left">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3">Reg No</th>
+                        <th class="p-3">Driver Name</th>
+                        <th class="p-3">Capacity</th>
+                        <th class="p-3">Model</th>
+                        <th class="p-3">Phone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $cabs->fetch_assoc()): ?>
+                        <tr>
+                            <td class="p-3"><?= $row['reg_no'] ?></td>
+                            <td class="p-3"><?= $row['driver_name'] ?></td>
+                            <td class="p-3"><?= $row['capacity'] ?></td>
+                            <td class="p-3"><?= $row['model'] ?></td>
+                            <td class="p-3"><?= $row['phone_no'] ?></td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Airlines Table -->
+        <div class="table-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Airline List</h2>
+            <table class="table-auto w-full text-left">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3">Airline ID</th>
+                        <th class="p-3">Airline Name</th>
+                        <th class="p-3">Headquarter</th>
+                        <th class="p-3">Contact</th>
+                        <th class="p-3">Website</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $airlines->fetch_assoc()): ?>
+                        <tr>
+                            <td class="p-3"><?= $row['airline_id'] ?></td>
+                            <td class="p-3"><?= $row['airline_name'] ?></td>
+                            <td class="p-3"><?= $row['headquarter'] ?></td>
+                            <td class="p-3"><?= $row['contact'] ?></td>
+                            <td class="p-3"><?= $row['website'] ?></td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Customers Table -->
+        <div class="table-container bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Customer List</h2>
+            <table class="table-auto w-full text-left">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="p-3">Passport ID</th>
+                        <th class="p-3">Name</th>
+                        <th class="p-3">Date of Birth</th>
+                        <th class="p-3">Nationality</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $customers->fetch_assoc()): ?>
+                        <tr>
+                            <td class="p-3"><?= $row['passport_id'] ?></td>
+                            <td class="p-3"><?= $row['name'] ?></td>
+                            <td class="p-3"><?= $row['dob'] ?></td>
+                            <td class="p-3"><?= $row['nationality'] ?></td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- Add tables for Customers, Cabs, and Airlines below -->
 
     </div>
 </body>
 </html>
-
-<?php
-$conn->close();
-?>

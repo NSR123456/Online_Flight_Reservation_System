@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS Transactions (
     no_of_seat INT,
     seat_type VARCHAR(50),
     price DECIMAL(10, 2),
+    
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id)
 );
 
@@ -104,4 +105,16 @@ CREATE TABLE IF NOT EXISTS Travels (
     FOREIGN KEY (airport_id) REFERENCES Airports(id),
     FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
     FOREIGN KEY (schedule_id) REFERENCES Flight_Schedule(id)
+);
+
+CREATE TABLE IF NOT EXISTS SupportRequests (
+    
+    customer_id VARCHAR(255),
+    airline_id VARCHAR(50),
+    message TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
+    FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id)
 );

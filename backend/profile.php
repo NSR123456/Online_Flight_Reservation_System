@@ -2,7 +2,7 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 session_start();
-
+require 'logout.php';
 // Ensure the user is logged in
 if (!isset($_SESSION['passport_id'])) {
     header("Location: login.php");
@@ -30,22 +30,21 @@ if ($conn->connect_error) {
 }
 
 // Fetch the customer's booking details
-$flightQuery = "SELECT fb.flight_no, f.flight_name, fb.bill, fs.from_location, fs.to_location, fs.departure_date
-                FROM FlightBooking fb
+$flightQuery = "SELECT fb.flight_no, f.flight_name, fs.source, fs.destination, fs.departure_date, t.bill
+                FROM BookFlight fb
                 JOIN Flights f ON fb.flight_no = f.flight_no
                 JOIN Flight_Schedule fs ON fs.flight_no = fb.flight_no
+                JOIN Transactions t ON fb.transaction_id = t.id
                 WHERE fb.customer_id = '$passport_id'";
 
-
 $cabQuery = "SELECT cb.cab_reg_no, c.driver_name, cb.price, cb.pickup_location, cb.dropoff_location
-             FROM CabBooking cb
+             FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
              WHERE cb.customer_id = '$passport_id'";
 
 // Execute queries
 $flightResult = $conn->query($flightQuery);
 $cabResult = $conn->query($cabQuery);
-
 ?>
 
 <!DOCTYPE html>
@@ -61,24 +60,24 @@ $cabResult = $conn->query($cabQuery);
 
     <div class="container mx-auto p-8">
         <div class="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
-            <h1 class="text-3xl font-semibold mb-4 text-center">Welcome, <?php echo $name; ?></h1>
+            <h1 class="text-3xl font-semibold mb-4 text-center">Welcome, <?php echo htmlspecialchars($name); ?></h1>
             <div class="text-lg">
-                <p class="mb-2"><strong>Passport ID:</strong> <?php echo $passport_id; ?></p>
-                <p class="mb-2"><strong>Date of Birth:</strong> <?php echo $dob; ?></p>
-                <p class="mb-2"><strong>Nationality:</strong> <?php echo $nationality; ?></p>
+                <p class="mb-2"><strong>Passport ID:</strong> <?php echo htmlspecialchars($passport_id); ?></p>
+                <p class="mb-2"><strong>Date of Birth:</strong> <?php echo htmlspecialchars($dob); ?></p>
+                <p class="mb-2"><strong>Nationality:</strong> <?php echo htmlspecialchars($nationality); ?></p>
             </div>
 
             <!-- Flight Booking Details -->
             <h2 class="text-2xl font-semibold mt-8 mb-4">Flight Bookings</h2>
-            <?php if ($flightResult->num_rows > 0): ?>
+            <?php if ($flightResult && $flightResult->num_rows > 0): ?>
                 <div class="space-y-4">
                     <?php while ($flight = $flightResult->fetch_assoc()): ?>
                         <div class="bg-blue-50 p-4 rounded-lg shadow-sm">
-                            <p><strong>Flight:</strong> <?php echo $flight['flight_name']; ?> (<?php echo $flight['flight_no']; ?>)</p>
-                            <p><strong>From:</strong> <?php echo $flight['from_location']; ?></p>
-                            <p><strong>To:</strong> <?php echo $flight['to_location']; ?></p>
-                            <p><strong>Departure Date:</strong> <?php echo $flight['departure_date']; ?></p>
-                            <p><strong>Amount Paid:</strong> $<?php echo $flight['bill']; ?></p>
+                            <p><strong>Flight:</strong> <?php echo htmlspecialchars($flight['flight_name']); ?> (<?php echo htmlspecialchars($flight['flight_no']); ?>)</p>
+                            <p><strong>From:</strong> <?php echo htmlspecialchars($flight['source']); ?></p>
+                            <p><strong>To:</strong> <?php echo htmlspecialchars($flight['destination']); ?></p>
+                            <p><strong>Departure Date:</strong> <?php echo htmlspecialchars($flight['departure_date']); ?></p>
+                            <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($flight['bill']); ?></p>
                         </div>
                     <?php endwhile; ?>
                 </div>
@@ -88,22 +87,29 @@ $cabResult = $conn->query($cabQuery);
 
             <!-- Cab Booking Details -->
             <h2 class="text-2xl font-semibold mt-8 mb-4">Cab Bookings</h2>
-            <?php if ($cabResult->num_rows > 0): ?>
+            <?php if ($cabResult && $cabResult->num_rows > 0): ?>
                 <div class="space-y-4">
                     <?php while ($cab = $cabResult->fetch_assoc()): ?>
                         <div class="bg-green-50 p-4 rounded-lg shadow-sm">
-                            <p><strong>Cab:</strong> <?php echo $cab['cab_reg_no']; ?></p>
-                            <p><strong>Driver:</strong> <?php echo $cab['driver_name']; ?></p>
-                            <p><strong>Pickup Location:</strong> <?php echo $cab['pickup_location']; ?></p>
-                            <p><strong>Dropoff Location:</strong> <?php echo $cab['dropoff_location']; ?></p>
-                            <p><strong>Amount Paid:</strong> $<?php echo $cab['price']; ?></p>
+                            <p><strong>Cab:</strong> <?php echo htmlspecialchars($cab['cab_reg_no']); ?></p>
+                            <p><strong>Driver:</strong> <?php echo htmlspecialchars($cab['driver_name']); ?></p>
+                            <p><strong>Pickup Location:</strong> <?php echo htmlspecialchars($cab['pickup_location']); ?></p>
+                            <p><strong>Dropoff Location:</strong> <?php echo htmlspecialchars($cab['dropoff_location']); ?></p>
+                            <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($cab['price']); ?></p>
                         </div>
                     <?php endwhile; ?>
                 </div>
             <?php else: ?>
                 <p>No cab bookings found.</p>
             <?php endif; ?>
-
+            <!-- Logout Button -->
+            <div class="mt-8 text-center">
+    <form method="POST" action="logout.php">
+        <button type="submit" name="logout" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+            Logout
+        </button>
+    </form>
+</div>
         </div>
     </div>
 

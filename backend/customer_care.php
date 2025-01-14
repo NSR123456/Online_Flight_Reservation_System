@@ -2,7 +2,13 @@
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+session_start();
+if (!isset($_SESSION['passport_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
+$passport_id = $_SESSION['passport_id'];
 // Backend Logic for Handling Support Requests
 $servername = "localhost";
 $username = "panjas";

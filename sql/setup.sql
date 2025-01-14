@@ -118,3 +118,17 @@ CREATE TABLE IF NOT EXISTS SupportRequests (
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
     FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id)
 );
+
+INSERT INTO SeatAllocating (schedule_id, flight_no, available_seats, status)
+SELECT fs.id, f.flight_no, 
+       CASE 
+           WHEN f.flight_no = 'F001' THEN 100
+           WHEN f.flight_no = 'F002' THEN 120
+           WHEN f.flight_no = 'F003' THEN 200
+           WHEN f.flight_no = 'F004' THEN 200
+           WHEN f.flight_no = 'F005' THEN 300
+           ELSE 0
+       END AS available_seats,
+       'Available'
+FROM Flight_Schedule fs
+JOIN Flights f ON f.flight_no IN ('F001', 'F002', 'F003', 'F004', 'F005');

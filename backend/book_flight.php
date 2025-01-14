@@ -1,61 +1,131 @@
 <?php
+
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+session_start();
+if (!isset($_SESSION['passport_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
-$host = 'localhost';
-$db = 'flight_reservation_system';
-$user = 'panjas';
-$password = 'Panjas@cse1';
+$customer_id = $_SESSION['passport_id'];
+
+$servername = "localhost";
+$username = "panjas";
+$password = "Panjas@cse1";
+$dbname = "flight_reservation_system";
 
 // Establish a database connection
-$conn = new mysqli($host, $user, $password, $db);
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch available flights
-$flights_query = "SELECT flight_no, flight_name FROM Flights";
-$flights_result = $conn->query($flights_query);
+// Function to log errors to a file
+function log_error($message) {
+    error_log($message, 3, 'error_log.txt');
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
+    
+    $schedule_id = $_POST['schedule_id'];
+
+    $seat_type = $_POST['seat_type'];
+    $airport_id = $_POST['airport_id']; // Added airport_id
+    $ordered_seat = $_POST['ordered_seat'];
+    // Calculate bill dynamically based on seat type
+    $bill_query = "SELECT 
+                (CASE 
+                    WHEN '$seat_type' = 'Economy' THEN 100 
+                    WHEN '$seat_type' = 'Business' THEN 200 
+                    ELSE 300 
+                END * $ordered_seat) AS seat_price,
+                50 AS airport_fee 
+                FROM DUAL";
+
+    $bill_result = $conn->query($bill_query);
+    if (!$bill_result) {
+         die("Error in bill query: " . $conn->error);
+    }
+    $bill_data = $bill_result->fetch_assoc();
+    $bill = $bill_data['seat_price'] + $bill_data['airport_fee'];
+
+    // Check seat availability
+    $seat_check_query = "SELECT available_seats, status 
+                         FROM AllocateSeat 
+                         WHERE schedule_id = '$schedule_id' 
+                         AND status = 'Available' 
+                         LIMIT 1";
+
+    $seat_check_result = $conn->query($seat_check_query);
+
+    if ($seat_check_result && $seat_check_result->num_rows > 0) {
+        // Proceed with booking if seats are available
+        $conn->begin_transaction();
+
+        try {
+            // Insert into Transactions
+            $transaction_query = "INSERT INTO Transactions (customer_id, no_of_seat, seat_type, bill) 
+                                  VALUES ('$customer_id', 1, '$seat_type', '$bill')";
+            if (!$conn->query($transaction_query)) {
+                throw new Exception($conn->error);
+            }
+        
+            if ($conn->query($transaction_query)) {
+                $transaction_id = $conn->insert_id;  // Get the auto-incremented ID of the new row
+                echo "The new transaction ID is: " . $transaction_id;
+            } else {
+                echo "Error: " . $conn->error;
+            }
+        
+            // Insert into FlightBooking (including airport_id)
+            $booking_query = "INSERT INTO BookFlight (transaction_id, customer_id, flight_no, airport_id, schedule_id, ordered_seat) 
+                              VALUES ($transaction_id, '$customer_id', 
+                                      (SELECT flight_no FROM Flight_Schedule WHERE id = $schedule_id), 
+                                      '$airport_id', $schedule_id, $ordered_seat)";
+            if (!$conn->query($booking_query)) {
+                throw new Exception($conn->error);
+            }
+        
+            // Decrement available seats and update status to 'Booked' in SeatAllocating table
+            $update_seat_query = "UPDATE AllocateSeat 
+                                  SET available_seats = available_seats - $ordered_seat, 
+                                      status = CASE 
+                                                WHEN available_seats - $ordered_seat > 0 THEN 'Available' 
+                                                ELSE 'Booked' 
+                                              END
+                                  WHERE schedule_id = '$schedule_id' 
+                                  AND status = 'Available'";
+            if (!$conn->query($update_seat_query)) {
+                throw new Exception($conn->error);
+            }
+        
+            $conn->commit();
+            echo "<p class='text-green-600 font-semibold'>Booking successful! Total Bill: $$bill</p>";
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo "<p class='text-red-600 font-semibold'>Error: " . $e->getMessage() . "</p>";
+        }
+        
+    } else {
+        echo "<p class='text-red-600 font-semibold'>No available seats left for the selected flight.</p>";
+    }
+}
+
+// Fetch flight schedules for the dropdown
+$schedule_query = "SELECT fs.id, f.flight_name, fs.departure_date, fs.departure_time, fs.source, fs.destination 
+                   FROM Flight_Schedule fs
+                   JOIN Flights f ON fs.flight_no = f.flight_no";
+$schedule_result = $conn->query($schedule_query);
 
 // Fetch available airports
-$airports_query = "SELECT id, airport_name FROM Airports";
-$airports_result = $conn->query($airports_query);
+$airport_query = "SELECT id, airport_name FROM Airports";
+$airport_result = $conn->query($airport_query);
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $customer_id = $_POST['customer_id'];
-    $flight_no = $_POST['flight_no'];
-    $bill = $_POST['bill'];
-    $airport_id = $_POST['airport_id'];
-
-    // Check available seats before booking
-    $seats_check_query = "SELECT no_of_seat, 
-                                (no_of_seat - COALESCE((SELECT SUM(no_of_seat) FROM FlightBooking WHERE flight_no = '$flight_no'), 0)) AS available_seats
-                           FROM Flights 
-                           WHERE flight_no = '$flight_no'";
-
-    $result = $conn->query($seats_check_query);
-    if ($result && $result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $available_seats = $row['available_seats'];
-
-        if ($available_seats > 0) {
-            // If there are available seats, proceed with booking
-            $sql = "INSERT INTO FlightBooking (customer_id, flight_no, bill, airport_id) 
-                    VALUES ('$customer_id', '$flight_no', '$bill', '$airport_id')";
-
-            if ($conn->query($sql) === TRUE) {
-                echo "<p class='text-green-600 font-semibold'>Booking successful! Available seats: $available_seats</p>";
-            } else {
-                echo "<p class='text-red-600 font-semibold'>Error: " . $conn->error . "</p>";
-            }
-        } else {
-            echo "<p class='text-red-600 font-semibold'>No available seats for the selected flight.</p>";
-        }
-    } else {
-        echo "<p class='text-red-600 font-semibold'>Flight not found.</p>";
-    }
+if (!$schedule_result || !$airport_result) {
+    die("Error fetching flight schedules or airports: " . $conn->error);
 }
 ?>
 
@@ -64,60 +134,79 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book Flight</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Flight Booking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900">
+<body>
+    <h1>Flight Booking System</h1>
+    <form method="POST">
+        <label for="schedule_id">Select Flight Schedule:</label>
+        <select name="schedule_id" id="schedule_id" required>
+            <?php if ($schedule_result->num_rows > 0): ?>
+                <?php while ($row = $schedule_result->fetch_assoc()): ?>
+                    <option value="<?php echo $row['id']; ?>">
+                        <?php echo $row['flight_name'] . " - " . $row['source'] . " to " . $row['destination'] . " on " . $row['departure_date'] . " at " . $row['departure_time']; ?>
+                    </option>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <option value="" disabled>No flight schedules available</option>
+            <?php endif; ?>
+        </select><br>
 
-    <div class="container mx-auto p-8">
-        <h1 class="text-3xl font-semibold mb-6 text-center">Flight Booking</h1>
 
-        <form method="POST" class="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
-            <div class="mb-4">
-                <label for="customer_id" class="block text-lg font-semibold text-gray-700">Customer ID:</label>
-                <input type="text" name="customer_id" id="customer_id" required class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
+        <label for="ordered_seat">Number of Seats:</label>
+        <input type="number" name="ordered_seat" id="ordered_seat" min="1" required><br>
 
-            <div class="mb-4">
-                <label for="flight_no" class="block text-lg font-semibold text-gray-700">Flight No:</label>
-                <select name="flight_no" id="flight_no" required class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Flight</option>
-                    <?php
-                    if ($flights_result->num_rows > 0) {
-                        while ($row = $flights_result->fetch_assoc()) {
-                            echo "<option value='" . $row['flight_no'] . "'>" . $row['flight_name'] . " (" . $row['flight_no'] . ")</option>";
-                        }
-                    } else {
-                        echo "<option value=''>No flights available</option>";
-                    }
-                    ?>
-                </select>
-            </div>
+        <label for="seat_type">Seat Type:</label>
+        <select name="seat_type" id="seat_type" required>
+            <option value="Economy">Economy</option>
+            <option value="Business">Business</option>
+            <option value="FirstClass">First Class</option>
+        </select><br>
 
-            <div class="mb-4">
-                <label for="bill" class="block text-lg font-semibold text-gray-700">Bill Amount:</label>
-                <input type="number" name="bill" id="bill" step="0.01" required class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
+        <label for="airport_id">Select Airport:</label>
+        <select name="airport_id" id="airport_id" required>
+            <?php if ($airport_result->num_rows > 0): ?>
+                <?php while ($row = $airport_result->fetch_assoc()): ?>
+                    <option value="<?php echo $row['id']; ?>">
+                        <?php echo $row['airport_name']; ?>
+                    </option>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <option value="" disabled>No airports available</option>
+            <?php endif; ?>
+        </select><br>
 
-            <div class="mb-4">
-                <label for="airport_id" class="block text-lg font-semibold text-gray-700">Airport:</label>
-                <select name="airport_id" id="airport_id" required class="w-full p-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Airport</option>
-                    <?php
-                    if ($airports_result->num_rows > 0) {
-                        while ($row = $airports_result->fetch_assoc()) {
-                            echo "<option value='" . $row['id'] . "'>" . $row['airport_name'] . "</option>";
-                        }
-                    } else {
-                        echo "<option value=''>No airports available</option>";
-                    }
-                    ?>
-                </select>
-            </div>
-
-            <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Book Flight</button>
-        </form>
-    </div>
-</body>
+        <button type="submit">Book Flight</button>
+    </form>
+</body>S
 </html>
+
+<?php $conn->close(); ?>

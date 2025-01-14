@@ -1,8 +1,15 @@
 <?php
+
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+session_start();
+if (!isset($_SESSION['passport_id'])) {
+    header("Location: login.php");
+    exit();
+}
 
+$customer_id = $_SESSION['passport_id'];
 // Database credentials
 $host = 'localhost';
 $db = 'flight_reservation_system';
@@ -17,16 +24,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $customer_id = $_POST['customer_id'];
+    
     $cab_reg_no = $_POST['cab_reg_no'];
     $pickup_location = $_POST['pickup_location'];
     $dropoff_location = $_POST['dropoff_location'];
     $price = $_POST['price'];
 
     // Insert data into CabBooking table
-    $sql = "INSERT INTO CabBooking (customer_id, cab_reg_no, pickup_location, dropoff_location, price) 
+    $sql = "INSERT INTO BookCab (customer_id, cab_reg_no, pickup_location, dropoff_location, price) 
             VALUES ('$customer_id', '$cab_reg_no', '$pickup_location', '$dropoff_location', '$price')";
 
     if ($conn->query($sql) === TRUE) {
@@ -39,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!-- HTML Form -->
 <form method="POST">
-    Customer ID: <input type="text" name="customer_id" required><br>
+    
     Cab Registration No: <input type="text" name="cab_reg_no" required><br>
     Pickup Location: <input type="text" name="pickup_location" required><br>
     Dropoff Location: <input type="text" name="dropoff_location" required><br>

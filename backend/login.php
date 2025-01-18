@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['nationality'] = $customer['nationality'];
 
         // Redirect to customer profile or dashboard
-        header("Location: profile.php");
+        header("Location: homepage.php");
         exit();
     } else {
         // Invalid passport_id

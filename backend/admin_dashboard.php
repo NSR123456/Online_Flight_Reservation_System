@@ -153,6 +153,16 @@ $route_prices = $conn->query("SELECT * FROM Cab_Route_Price");
         <?php if (!empty($success)) echo "<p class='text-green-500 text-center'>$success</p>"; ?>
         <?php if (!empty($error)) echo "<p class='text-red-500 text-center'>$error</p>"; ?>
 
+         <!-- Link to View Data Tables -->
+         <div class="text-center">
+            <a href="view_flights.php" class="text-blue-600 hover:text-blue-700">View Flights</a> | 
+            <a href="view_customers.php" class="text-blue-600 hover:text-blue-700">View Customers</a> | 
+            <a href="view_cabs.php" class="text-blue-600 hover:text-blue-700">View Cabs</a> | 
+            <a href="view_airlines.php" class="text-blue-600 hover:text-blue-700">View Airlines</a> | 
+            <a href="view_schedule.php" class="text-blue-600 hover:text-blue-700">View Schedules</a> |
+            <a href="view_route_prices.php" class="text-blue-600 hover:text-blue-700">View Cab Route Prices</a> | 
+            <a href="view_complaints.php" class="text-blue-600 hover:text-blue-700">View Customer Messages</a>
+        </div>
         <!-- Flight Management Form -->
         <div class="form-container bg-white p-6 rounded-lg shadow-lg mb-8">
             <h2 class="text-2xl font-semibold mb-4">Add New Flight</h2>
@@ -243,15 +253,7 @@ $route_prices = $conn->query("SELECT * FROM Cab_Route_Price");
     </form>
 </div>
 
-        <!-- Link to View Data Tables -->
-        <div class="text-center">
-            <a href="view_flights.php" class="text-blue-600 hover:text-blue-700">View Flights</a> | 
-            <a href="view_customers.php" class="text-blue-600 hover:text-blue-700">View Customers</a> | 
-            <a href="view_cabs.php" class="text-blue-600 hover:text-blue-700">View Cabs</a> | 
-            <a href="view_airlines.php" class="text-blue-600 hover:text-blue-700">View Airlines</a> | 
-            <a href="view_schedule.php" class="text-blue-600 hover:text-blue-700">View Schedules</a> |
-            <a href="view_route_prices.php" class="text-blue-600 hover:text-blue-700">View Cab Route Prices</a>
-        </div>
+       
 
     </div>
 

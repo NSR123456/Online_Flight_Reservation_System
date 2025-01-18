@@ -37,10 +37,12 @@ $flightQuery = "SELECT fb.flight_no, f.flight_name, fs.source, fs.destination, f
                 JOIN Transactions t ON fb.transaction_id = t.id
                 WHERE fb.customer_id = '$passport_id'";
 
-$cabQuery = "SELECT cb.cab_reg_no, c.driver_name, cb.price, cb.pickup_location, cb.dropoff_location
+$cabQuery = "SELECT cb.cab_reg_no, c.driver_name, crp.price, crp.pickup_location, crp.dropoff_location
              FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
+             JOIN Cab_Route_Price crp ON cb.route_id = crp.id
              WHERE cb.customer_id = '$passport_id'";
+
 
 // Execute queries
 $flightResult = $conn->query($flightQuery);

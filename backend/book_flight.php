@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
 
         try {
             // Insert into Transactions
-            $transaction_query = "INSERT INTO Transactions (customer_id, no_of_seat, seat_type, bill) 
-                                  VALUES ('$customer_id', 1, '$seat_type', '$bill')";
+            $transaction_query = "INSERT INTO Transactions ( bill) 
+                                  VALUES ( '$bill')";
             if (!$conn->query($transaction_query)) {
                 throw new Exception($conn->error);
             }

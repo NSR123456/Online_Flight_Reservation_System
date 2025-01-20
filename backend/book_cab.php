@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $cab_reg_no = $_POST['cab_reg_no'];
     $pickup_location = $_POST['pickup_location'];
     $dropoff_location = $_POST['dropoff_location'];
+    $booking_date = $_POST['booking_date']; // Get the date from user input
 
     // Fetch the price based on the pickup and dropoff locations
     $sql_price = "SELECT price FROM Cab_Route_Price WHERE pickup_location = '$pickup_location' AND dropoff_location = '$dropoff_location'";
@@ -38,19 +39,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $row = $result_price->fetch_assoc();
         $price = $row['price'];
 
-        // Insert data into BookCab table
-        $sql = "INSERT INTO BookCab (route_id, cab_reg_no, customer_id) 
-                SELECT id, '$cab_reg_no', '$customer_id' 
-                FROM Cab_Route_Price 
-                WHERE pickup_location = '$pickup_location' AND dropoff_location = '$dropoff_location'";
+        // Step 1: Retrieve the route_id for the selected pickup and dropoff locations
+        $sql_route_id = "SELECT id FROM Cab_Route_Price WHERE pickup_location = '$pickup_location' AND dropoff_location = '$dropoff_location'";
+        $result_route_id = $conn->query($sql_route_id);
 
-        if ($conn->query($sql) === TRUE) {
-            echo "Cab booked successfully! Price: " . $price;
+        if ($result_route_id->num_rows > 0) {
+            $row = $result_route_id->fetch_assoc();
+            $route_id = $row['id'];
+
+            // Step 2: Insert into BookCab table with the retrieved route_id and the user-specified booking date
+            $sql_insert = "INSERT INTO BookCab (route_id, cab_reg_no, customer_id, booking_date) 
+                           VALUES ('$route_id', '$cab_reg_no', '$customer_id', '$booking_date')";
+            if ($conn->query($sql_insert) === TRUE) {
+                echo "Cab booked successfully! Price: " . $price;
+            } else {
+                echo "Error: " . $sql_insert . "<br>" . $conn->error;
+            }
         } else {
-            echo "Error: " . $sql . "<br>" . $conn->error;
+            echo "Route not found!";
         }
     } else {
-        echo "Route not found!";
+        echo "Price not found for this route!";
     }
 }
 ?>
@@ -98,6 +107,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         ?>
     </select><br>
+
+    <!-- Booking Date (User Input) -->
+    Booking Date:
+    <input type="date" name="booking_date" required><br>
 
     <!-- Display price dynamically after selecting locations -->
     <p id="price-display"></p>

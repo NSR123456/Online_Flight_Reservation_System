@@ -15,11 +15,24 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch Flights and Airlines Information
-$flightsQuery = "SELECT flight_no, flight_name FROM Flights LIMIT 5";
-$airlinesQuery = "SELECT airline_id, airline_name, headquarter, operating_regions, contact FROM Airlines LIMIT 5";
+// Fetch available flights where seats are available
+$flightsQuery = "
+    SELECT f.flight_no, f.flight_name, f.capacity, as1.available_seats, fs.airline_name
+    FROM Flights f
+    JOIN Flight_Schedule fs ON f.flight_no = fs.flight_no
+    JOIN AllocateSeat as1 ON fs.id = as1.schedule_id
+    WHERE as1.available_seats > 0
+    LIMIT 5
+";
 
 $flightsResult = $conn->query($flightsQuery);
+
+// Fetch Airlines Information
+$airlinesQuery = "
+    SELECT airline_id, airline_name, headquarter, operating_regions, contact 
+    FROM Airlines LIMIT 5
+";
+
 $airlinesResult = $conn->query($airlinesQuery);
 
 // Check if the user is logged in
@@ -54,7 +67,7 @@ $conn->close();
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <!-- Navbar (unchanged) -->
+    <!-- Navbar -->
     <nav class="bg-blue-600 shadow-md fixed top-0 left-0 w-full z-10">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
@@ -75,14 +88,11 @@ $conn->close();
     <!-- Hero Section -->
     <section class="bg-blue-500 text-white py-32">
         <div class="container mx-auto text-center">
-            <h1 class="text-5xl font-semibold mb-4">Welcome to FlightRes</h1>
-            <!-- Display login message or suggestion based on login status -->
             <?php if ($isLoggedIn): ?>
                 <h2 class="text-5xl font-semibold mb-4">Hello, <?= htmlspecialchars($userName) ?>! You are logged in.</h2>
             <?php else: ?>
                 <p class="text-lg mb-4">You are not logged in. <a href="login.php" class="text-yellow-400">Click here to log in</a>.</p>
             <?php endif; ?>
-
         </div>
     </section>
 
@@ -92,17 +102,22 @@ $conn->close();
             <h2 class="text-3xl font-semibold mb-8">Available Flights & Airlines</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
 
-                <!-- Flights Information Cards -->
+                <!-- Available Flights Information Cards -->
                 <div class="bg-white shadow-lg rounded-lg p-6">
-                    <h3 class="text-2xl font-bold mb-4">Flights</h3>
+                    <h3 class="text-2xl font-bold mb-4">Available Flights</h3>
                     <?php if ($flightsResult->num_rows > 0): ?>
                         <ul>
                             <?php while($flight = $flightsResult->fetch_assoc()): ?>
-                                <li class="text-gray-700"><?= htmlspecialchars($flight['flight_name']) ?> (Flight No: <?= htmlspecialchars($flight['flight_no']) ?>)</li>
+                                <li class="text-gray-700">
+                                    <strong><?= htmlspecialchars($flight['flight_name']) ?> (Flight No: <?= htmlspecialchars($flight['flight_no']) ?>)</strong><br>
+                                    Airline: <?= htmlspecialchars($flight['airline_name']) ?><br>
+                                    Available Seats: <?= htmlspecialchars($flight['available_seats']) ?><br>
+                                    Total Capacity: <?= htmlspecialchars($flight['capacity']) ?>
+                                </li>
                             <?php endwhile; ?>
                         </ul>
                     <?php else: ?>
-                        <p>No flights available at the moment.</p>
+                        <p>No available flights at the moment.</p>
                     <?php endif; ?>
                 </div>
 

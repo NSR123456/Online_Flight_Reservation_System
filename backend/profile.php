@@ -35,13 +35,15 @@ $flightQuery = "SELECT fb.flight_no, f.flight_name, fs.source, fs.destination, f
                 JOIN Flights f ON fb.flight_no = f.flight_no
                 JOIN Flight_Schedule fs ON fs.flight_no = fb.flight_no
                 JOIN Transactions t ON fb.transaction_id = t.id
-                WHERE fb.customer_id = '$passport_id'";
+                WHERE fb.customer_id = '$passport_id'
+                ORDER BY fs.departure_date DESC";
 
-$cabQuery = "SELECT cb.cab_reg_no, c.driver_name, crp.price, crp.pickup_location, crp.dropoff_location
+$cabQuery = "SELECT cb.cab_reg_no, c.driver_name, crp.price, crp.pickup_location, crp.dropoff_location, cb.booking_date
              FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
              JOIN Cab_Route_Price crp ON cb.route_id = crp.id
-             WHERE cb.customer_id = '$passport_id'";
+             WHERE cb.customer_id = '$passport_id'
+             ORDER BY cb.booking_date DESC";
 
 
 // Execute queries
@@ -98,6 +100,7 @@ $cabResult = $conn->query($cabQuery);
                             <p><strong>Pickup Location:</strong> <?php echo htmlspecialchars($cab['pickup_location']); ?></p>
                             <p><strong>Dropoff Location:</strong> <?php echo htmlspecialchars($cab['dropoff_location']); ?></p>
                             <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($cab['price']); ?></p>
+                            <p><strong>Booking Date:</strong> <?php echo htmlspecialchars($cab['booking_date']); ?></p>
                         </div>
                     <?php endwhile; ?>
                 </div>

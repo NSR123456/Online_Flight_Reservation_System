@@ -1,9 +1,9 @@
 <?php
 
-
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 session_start();
+
 if (!isset($_SESSION['passport_id'])) {
     header("Location: login.php");
     exit();
@@ -31,10 +31,10 @@ function log_error($message) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
     
     $schedule_id = $_POST['schedule_id'];
-
     $seat_type = $_POST['seat_type'];
-    $airport_id = $_POST['airport_id']; // Added airport_id
+    $airport_id = $_POST['airport_id'];
     $ordered_seat = $_POST['ordered_seat'];
+
     // Calculate bill dynamically based on seat type
     $bill_query = "SELECT 
                 (CASE 
@@ -47,16 +47,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
 
     $bill_result = $conn->query($bill_query);
     if (!$bill_result) {
-         die("Error in bill query: " . $conn->error);
+        die("Error in bill query: " . $conn->error);
     }
     $bill_data = $bill_result->fetch_assoc();
     $bill = $bill_data['seat_price'] + $bill_data['airport_fee'];
 
-    // Check seat availability
+    // Check seat availability (exclude past schedules)
     $seat_check_query = "SELECT available_seats, status 
                          FROM AllocateSeat 
                          WHERE schedule_id = '$schedule_id' 
-                         AND status = 'Available' 
+                         AND status = 'Available'
+                         AND (SELECT CONCAT(departure_date, ' ', departure_time) 
+                              FROM Flight_Schedule 
+                              WHERE id = '$schedule_id') >= NOW()
                          LIMIT 1";
 
     $seat_check_result = $conn->query($seat_check_query);
@@ -67,20 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
 
         try {
             // Insert into Transactions
-            $transaction_query = "INSERT INTO Transactions ( bill) 
-                                  VALUES ( '$bill')";
+            $transaction_query = "INSERT INTO Transactions (bill) 
+                                  VALUES ('$bill')";
             if (!$conn->query($transaction_query)) {
                 throw new Exception($conn->error);
             }
-        
-            if ($conn->query($transaction_query)) {
-                $transaction_id = $conn->insert_id;  // Get the auto-incremented ID of the new row
-                echo "The new transaction ID is: " . $transaction_id;
-            } else {
-                echo "Error: " . $conn->error;
-            }
-        
-            // Insert into FlightBooking (including airport_id)
+
+            $transaction_id = $conn->insert_id;
+
+            // Insert into BookFlight (including airport_id)
             $booking_query = "INSERT INTO BookFlight (transaction_id, customer_id, flight_no, airport_id, schedule_id, ordered_seat) 
                               VALUES ($transaction_id, '$customer_id', 
                                       (SELECT flight_no FROM Flight_Schedule WHERE id = $schedule_id), 
@@ -88,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
             if (!$conn->query($booking_query)) {
                 throw new Exception($conn->error);
             }
-        
-            // Decrement available seats and update status to 'Booked' in SeatAllocating table
+
+            // Decrement available seats and update status to 'Booked'
             $update_seat_query = "UPDATE AllocateSeat 
                                   SET available_seats = available_seats - $ordered_seat, 
                                       status = CASE 
@@ -101,23 +99,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['schedule_id'])) {
             if (!$conn->query($update_seat_query)) {
                 throw new Exception($conn->error);
             }
-        
+
             $conn->commit();
             echo "<p class='text-green-600 font-semibold'>Booking successful! Total Bill: $$bill</p>";
         } catch (Exception $e) {
             $conn->rollback();
             echo "<p class='text-red-600 font-semibold'>Error: " . $e->getMessage() . "</p>";
         }
-        
     } else {
-        echo "<p class='text-red-600 font-semibold'>No available seats left for the selected flight.</p>";
+        echo "<p class='text-red-600 font-semibold'>No available seats left for the selected flight or the schedule has passed.</p>";
     }
 }
 
-// Fetch flight schedules for the dropdown
+// Fetch flight schedules for the dropdown (only future schedules)
 $schedule_query = "SELECT fs.id, f.flight_name, fs.departure_date, fs.departure_time, fs.source, fs.destination 
                    FROM Flight_Schedule fs
-                   JOIN Flights f ON fs.flight_no = f.flight_no";
+                   JOIN Flights f ON fs.flight_no = f.flight_no
+                   WHERE CONCAT(fs.departure_date, ' ', fs.departure_time) >= NOW()";
 $schedule_result = $conn->query($schedule_query);
 
 // Fetch available airports
@@ -180,7 +178,6 @@ if (!$schedule_result || !$airport_result) {
             <?php endif; ?>
         </select><br>
 
-
         <label for="ordered_seat">Number of Seats:</label>
         <input type="number" name="ordered_seat" id="ordered_seat" min="1" required><br>
 
@@ -206,7 +203,7 @@ if (!$schedule_result || !$airport_result) {
 
         <button type="submit">Book Flight</button>
     </form>
-</body>S
+</body>
 </html>
 
 <?php $conn->close(); ?>

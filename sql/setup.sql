@@ -91,14 +91,14 @@ CREATE TABLE IF NOT EXISTS BookFlight (
 
 
 CREATE TABLE IF NOT EXISTS BookCab (
+
     route_id INT,
     cab_reg_no VARCHAR(50),
     customer_id VARCHAR(255),
-
-    FOREIGN KEY (route_id) REFERENCES Cab_Route_Price(id),
-
-    FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
-    FOREIGN KEY (cab_reg_no) REFERENCES Cabs(reg_no)
+    booking_date DATE,
+    FOREIGN KEY (route_id) REFERENCES Routes(route_id),
+    FOREIGN KEY (cab_reg_no) REFERENCES Cabs(cab_reg_no),
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
 );
 
 
@@ -121,5 +121,11 @@ CREATE TABLE IF NOT EXISTS SupportRequests (
     msg_id INT,
     FOREIGN KEY (msg_id) REFERENCES customer_support_info(id),
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
+    FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id)
+);
+CREATE TABLE BelongTo (
+    flight_no VARCHAR(50),
+    airline_id VARCHAR(50),
+    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
     FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id)
 );

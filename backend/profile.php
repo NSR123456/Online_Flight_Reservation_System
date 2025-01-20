@@ -3,6 +3,7 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 session_start();
 require 'logout.php';
+
 // Ensure the user is logged in
 if (!isset($_SESSION['passport_id'])) {
     header("Location: login.php");
@@ -29,25 +30,38 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch the customer's booking details
-$flightQuery = "SELECT fb.flight_no, f.flight_name, fs.source, fs.destination, fs.departure_date, t.bill
-                FROM BookFlight fb
-                JOIN Flights f ON fb.flight_no = f.flight_no
-                JOIN Flight_Schedule fs ON fs.flight_no = fb.flight_no
-                JOIN Transactions t ON fb.transaction_id = t.id
-                WHERE fb.customer_id = '$passport_id'
-                ORDER BY fs.departure_date DESC";
+// Fetch the customer's flight booking details
+$flightQuery = "SELECT 
+                    bf.flight_no, 
+                    f.flight_name, 
+                    fs.source, 
+                    fs.destination, 
+                    fs.departure_date, 
+                    fs.departure_time, 
+                    t.bill 
+                FROM BookFlight bf
+                JOIN Transactions t ON bf.transaction_id = t.id
+                JOIN Flight_Schedule fs ON bf.schedule_id = fs.id
+                JOIN Flights f ON fs.flight_no = f.flight_no
+                WHERE bf.customer_id = '$passport_id'
+                ORDER BY fs.departure_date DESC, fs.departure_time DESC";
 
-$cabQuery = "SELECT cb.cab_reg_no, c.driver_name, crp.price, crp.pickup_location, crp.dropoff_location, cb.booking_date
+$flightResult = $conn->query($flightQuery);
+
+// Fetch the customer's cab booking details
+$cabQuery = "SELECT 
+                 cb.cab_reg_no, 
+                 c.driver_name, 
+                 crp.price, 
+                 crp.pickup_location, 
+                 crp.dropoff_location, 
+                 cb.booking_date 
              FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
              JOIN Cab_Route_Price crp ON cb.route_id = crp.id
              WHERE cb.customer_id = '$passport_id'
              ORDER BY cb.booking_date DESC";
 
-
-// Execute queries
-$flightResult = $conn->query($flightQuery);
 $cabResult = $conn->query($cabQuery);
 ?>
 
@@ -81,6 +95,7 @@ $cabResult = $conn->query($cabQuery);
                             <p><strong>From:</strong> <?php echo htmlspecialchars($flight['source']); ?></p>
                             <p><strong>To:</strong> <?php echo htmlspecialchars($flight['destination']); ?></p>
                             <p><strong>Departure Date:</strong> <?php echo htmlspecialchars($flight['departure_date']); ?></p>
+                            <p><strong>Departure Time:</strong> <?php echo htmlspecialchars($flight['departure_time']); ?></p>
                             <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($flight['bill']); ?></p>
                         </div>
                     <?php endwhile; ?>
@@ -107,14 +122,15 @@ $cabResult = $conn->query($cabQuery);
             <?php else: ?>
                 <p>No cab bookings found.</p>
             <?php endif; ?>
+
             <!-- Logout Button -->
             <div class="mt-8 text-center">
-    <form method="POST" action="logout.php">
-        <button type="submit" name="logout" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
-            Logout
-        </button>
-    </form>
-</div>
+                <form method="POST" action="logout.php">
+                    <button type="submit" name="logout" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 

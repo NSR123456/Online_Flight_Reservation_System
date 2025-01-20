@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['manage_flight'])) {
 }
 
 // Fetch upcoming cab bookings
-$cabs_query = "SELECT cab.reg_no, cp.pickup_location, cp.dropoff_location 
+$cabs_query = "SELECT cab.reg_no, cp.pickup_location, cp.dropoff_location, bc.booking_date
                FROM BookCab bc
                JOIN Cab_Route_Price cp ON bc.route_id = cp.id
                JOIN Cabs cab ON cab.reg_no = bc.cab_reg_no
@@ -80,7 +80,7 @@ $flights_query = "SELECT b.flight_no, a.airport_name, b.schedule_id, sch.departu
                   JOIN Flights f ON b.flight_no = f.flight_no
                   JOIN Flight_Schedule sch ON sch.id = b.schedule_id
                   JOIN Airports a ON a.id = b.airport_id
-                  WHERE b.customer_id = ? AND sch.departure_time > NOW()";
+                  WHERE b.customer_id = ? AND CONCAT(sch.departure_date, ' ', sch.departure_time) > NOW()";
 $stmt = $conn->prepare($flights_query);
 $stmt->bind_param("s", $customer_id);
 $stmt->execute();
@@ -133,7 +133,7 @@ $flights_result = $stmt->get_result();
             <?php if ($cabs_result->num_rows > 0): ?>
                 <?php while ($row = $cabs_result->fetch_assoc()): ?>
                     <option value="<?php echo $row['reg_no']; ?>">
-                        <?php echo "Cab: " . $row['reg_no'] . " (Pickup: " . $row['pickup_location'] . ", Dropoff: " . $row['dropoff_location'] . ")"; ?>
+                        <?php echo "Cab: " . $row['reg_no'] . " (Pickup: " . $row['pickup_location'] . ", Dropoff: " . $row['dropoff_location'] . ", Date: " . $row['booking_date'] . ")"; ?>
                     </option>
                 <?php endwhile; ?>
             <?php else: ?>

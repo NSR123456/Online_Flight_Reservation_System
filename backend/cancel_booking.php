@@ -1,5 +1,4 @@
 <?php
-
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
@@ -28,55 +27,64 @@ if ($conn->connect_error) {
 
 // Handle cab booking cancellation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancel_cab'])) {
-    $cab_booking_id = $_POST['cab_reg_no']; // Retrieve cab reg no
+    $cab_booking_id = $_POST['cab_reg_no'];
 
-    // Begin transaction
     $conn->begin_transaction();
 
     try {
-        // Restore cab booking to previous state
-        $update_cab_query = "delete from BookCab WHERE id = '$cab_booking_id' AND customer_id = '$customer_id' limit 1";
-        if (!$conn->query($update_cab_query)) {
-            throw new Exception("Error restoring cab booking: " . $conn->error);
+        $delete_cab_query = "DELETE FROM BookCab WHERE cab_reg_no = ? AND customer_id = ? LIMIT 1";
+        $stmt = $conn->prepare($delete_cab_query);
+        $stmt->bind_param("ss", $cab_booking_id, $customer_id);
+        if (!$stmt->execute()) {
+            throw new Exception("Error canceling cab booking: " . $stmt->error);
         }
 
-        // Commit transaction
         $conn->commit();
-        echo "<p class='text-green-600 font-semibold'>Cab booking cancelled successfully!</p>";
+        echo "<p class='text-green-600 font-semibold'>Cab booking canceled successfully!</p>";
     } catch (Exception $e) {
         $conn->rollback();
         echo "<p class='text-red-600 font-semibold'>Error: " . $e->getMessage() . "</p>";
     }
 }
 
-// Handle flight booking actions
+// Handle flight booking cancellation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['manage_flight'])) {
-    $flight_no = $_POST['flight_no'];
+    $flight_data = explode(',', $_POST['flight_no']); // Flight number and schedule ID
+    $flight_no = $flight_data[0];
+    $schedule_id = $flight_data[1];
 
-    // Example: Cancel flight booking
-    $cancel_flight_query = "DELETE FROM BookFlight WHERE flight_no = '$flight_no' AND customer_id = '$customer_id' limit 1";
-    if ($conn->query($cancel_flight_query)) {
-        echo "<p class='text-green-600 font-semibold'>Flight booking cancelled successfully!</p>";
+    $delete_flight_query = "DELETE FROM BookFlight WHERE flight_no = ? AND schedule_id = ? AND customer_id = ? LIMIT 1";
+    $stmt = $conn->prepare($delete_flight_query);
+    $stmt->bind_param("sss", $flight_no, $schedule_id, $customer_id);
+    if ($stmt->execute()) {
+        echo "<p class='text-green-600 font-semibold'>Flight booking canceled successfully!</p>";
     } else {
-        echo "<p class='text-red-600 font-semibold'>Error cancelling flight: " . $conn->error . "</p>";
+        echo "<p class='text-red-600 font-semibold'>Error canceling flight: " . $stmt->error . "</p>";
     }
 }
 
 // Fetch upcoming cab bookings
-$cabs_query = "SELECT cab.reg_no, cp.pickup_location, cp.dropoff_location  FROM BookCab bc 
-                join Cab_Route_Price cp on bc.route_id = cp.id
-                join Cabs cab on cab.reg_no = bc.cab_reg_no
-WHERE customer_id = '$customer_id'";
-$cabs_result = $conn->query($cabs_query);
+$cabs_query = "SELECT cab.reg_no, cp.pickup_location, cp.dropoff_location 
+               FROM BookCab bc
+               JOIN Cab_Route_Price cp ON bc.route_id = cp.id
+               JOIN Cabs cab ON cab.reg_no = bc.cab_reg_no
+               WHERE bc.customer_id = ?";
+$stmt = $conn->prepare($cabs_query);
+$stmt->bind_param("s", $customer_id);
+$stmt->execute();
+$cabs_result = $stmt->get_result();
 
 // Fetch upcoming flight bookings
 $flights_query = "SELECT b.flight_no, a.airport_name, b.schedule_id, sch.departure_date, sch.departure_time
-                FROM BookFlight b 
-                join Flights f on b.flight_no = f.flight_no
-                join Flight_Schedule sch on sch.id = b.schedule_id
-                join Airports a on a.id = b.airport_id
-                WHERE customer_id = '$customer_id' AND departure_time > NOW()";
-$flights_result = $conn->query($flights_query);
+                  FROM BookFlight b
+                  JOIN Flights f ON b.flight_no = f.flight_no
+                  JOIN Flight_Schedule sch ON sch.id = b.schedule_id
+                  JOIN Airports a ON a.id = b.airport_id
+                  WHERE b.customer_id = ? AND sch.departure_time > NOW()";
+$stmt = $conn->prepare($flights_query);
+$stmt->bind_param("s", $customer_id);
+$stmt->execute();
+$flights_result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -98,7 +106,7 @@ $flights_result = $conn->query($flights_query);
             display: block;
             margin: 10px 0 5px;
         }
-        input, select, button {
+        select, button {
             width: 100%;
             padding: 8px;
             margin-bottom: 10px;
@@ -124,11 +132,9 @@ $flights_result = $conn->query($flights_query);
         <select name="cab_reg_no" id="cab_reg_no" required>
             <?php if ($cabs_result->num_rows > 0): ?>
                 <?php while ($row = $cabs_result->fetch_assoc()): ?>
-                    <option value="<?php echo $row['cab_reg_no']; ?>">
-    <?php echo "Cab: " . $row['cab_reg_no'] . " (Pickup: " . $row['pickup_location'] . ", Dropoff: " . $row['dropoff_location'] . ")"; ?>
-</option>
-
-
+                    <option value="<?php echo $row['reg_no']; ?>">
+                        <?php echo "Cab: " . $row['reg_no'] . " (Pickup: " . $row['pickup_location'] . ", Dropoff: " . $row['dropoff_location'] . ")"; ?>
+                    </option>
                 <?php endwhile; ?>
             <?php else: ?>
                 <option value="" disabled>No cab bookings available</option>
@@ -147,7 +153,6 @@ $flights_result = $conn->query($flights_query);
                     <option value="<?php echo $row['flight_no'] . ',' . $row['schedule_id']; ?>">
                         <?php echo "Flight: " . $row['flight_no'] . ", Airport: " . $row['airport_name'] . ", Schedule: " . $row['schedule_id'] . " (Departure: " . $row['departure_date'] . " " . $row['departure_time'] . ")"; ?>
                     </option>
-
                 <?php endwhile; ?>
             <?php else: ?>
                 <option value="" disabled>No flight bookings available</option>

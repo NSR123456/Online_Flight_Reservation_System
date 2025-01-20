@@ -1,7 +1,3 @@
-CREATE DATABASE IF NOT EXISTS flight_booking_system;
-
-USE flight_booking_system;
-
 CREATE TABLE IF NOT EXISTS Customers (
     passport_id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255),
@@ -16,6 +12,13 @@ CREATE TABLE IF NOT EXISTS Cabs (
     phone_no VARCHAR(20),
     model VARCHAR(100)
 );
+CREATE TABLE Cab_Route_Price (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pickup_location VARCHAR(255),
+    dropoff_location VARCHAR(255),
+    price DECIMAL(10, 2)
+);
+
 
 CREATE TABLE IF NOT EXISTS Flights (
     flight_no VARCHAR(50) PRIMARY KEY,
@@ -30,8 +33,8 @@ CREATE TABLE IF NOT EXISTS Transactions (
     customer_id VARCHAR(255),
     no_of_seat INT,
     seat_type VARCHAR(50),
-    price DECIMAL(10, 2),
-    
+    bill NUMERIC(10, 2),
+
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id)
 );
 
@@ -54,81 +57,69 @@ CREATE TABLE IF NOT EXISTS Airlines (
 );
 
 CREATE TABLE IF NOT EXISTS Flight_Schedule (
-    id VARCHAR(50) PRIMARY KEY,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     flight_no VARCHAR(50),
+    airline_name VARCHAR(255),
     departure_date DATE,
     departure_time TIME,
-    from_location VARCHAR(100),
-    to_location VARCHAR(100),
-    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no)
+    source VARCHAR(100),
+    destination VARCHAR(100),
+    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
+    FOREIGN KEY (airline_name) REFERENCES Flights(airline_name)
+);
+CREATE TABLE customer_support_info (
+    id INT PRIMARY KEY,
+    message TEXT NOT NULL,
+    email VARCHAR(100) ,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Relationship Tables
-CREATE TABLE IF NOT EXISTS FlightBooking (
-    bill NUMERIC(10,2),
-    airport_id VARCHAR(255),
+CREATE TABLE IF NOT EXISTS BookFlight (
+    transaction_id INT AUTO INCREMENT,
     customer_id VARCHAR(255),
     flight_no VARCHAR(50),
-    FOREIGN KEY (airport_id) REFERENCES Airports(id),
+    airport_id VARCHAR(255),
+    schedule_id VARCHAR(50),
+    FOREIGN KEY (transaction_id) REFERENCES Transactions(id),
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
-    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no)
+    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
+    FOREIGN KEY (airport_id) REFERENCES Airports(id),
+    FOREIGN KEY (schedule_id) REFERENCES Flight_Schedule(id)
 );
 
-CREATE TABLE IF NOT EXISTS CabBooking (
+
+CREATE TABLE IF NOT EXISTS BookCab (
+    route_id INT,
     cab_reg_no VARCHAR(50),
     customer_id VARCHAR(255),
-    price DECIMAL(10, 2) NOT NULL,
-    pickup_location VARCHAR(255) NOT NULL,
-    dropoff_location VARCHAR(255) NOT NULL,
+
+    FOREIGN KEY (route_id) REFERENCES Cab_Route_Price(id),
+
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
     FOREIGN KEY (cab_reg_no) REFERENCES Cabs(reg_no)
 );
 
-CREATE TABLE IF NOT EXISTS ManageFlight (
-    airline_id VARCHAR(50),
-    flight_no VARCHAR(50),
-    FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id),
-    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no)
-);
 
-CREATE TABLE IF NOT EXISTS BuyTicket (
-    customer_id VARCHAR(255),
-    transaction_id INT,
-    FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
-    FOREIGN KEY (transaction_id) REFERENCES Transactions(id)
-);
 
-CREATE TABLE IF NOT EXISTS Travels (
+    CREATE TABLE IF NOT EXISTS AllocateSeat (
+    schedule_id INT ,
     flight_no VARCHAR(50),
-    airport_id VARCHAR(255),
-    schedule_id VARCHAR(50),
-    FOREIGN KEY (airport_id) REFERENCES Airports(id),
+
+    available_seats INT,
+    status ENUM('Available', 'Booked') DEFAULT 'Available',
+
     FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
     FOREIGN KEY (schedule_id) REFERENCES Flight_Schedule(id)
 );
 
 CREATE TABLE IF NOT EXISTS SupportRequests (
-    
+
     customer_id VARCHAR(255),
     airline_id VARCHAR(50),
-    message TEXT NOT NULL,
-    status VARCHAR(50) DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, 
+    msg_id INT,
+    FOREIGN KEY (msg_id) REFERENCES customer_support_info(id),
     FOREIGN KEY (customer_id) REFERENCES Customers(passport_id),
     FOREIGN KEY (airline_id) REFERENCES Airlines(airline_id)
 );
-
-
--- Populate AllocateSeat table for each schedule
-INSERT INTO AllocateSeat (schedule_id, flight_no, available_seats, status)
-SELECT 
-    fs.id AS schedule_id, 
-    fs.flight_no, 
-    f.no_of_seat AS available_seats, 
-    'Available' AS status
-FROM 
-    Flight_Schedule fs
-JOIN 
-    Flights f ON fs.flight_no = f.flight_no;
-

@@ -26,8 +26,8 @@ $query = "
         a.airline_name, 
         csi.message, 
         csi.email, 
-        csi.created_at, 
-        csi.updated_at
+        csi.created_at 
+        
     FROM 
         SupportRequests sr
     JOIN customer_support_info csi ON sr.msg_id = csi.id
@@ -75,7 +75,7 @@ $result = $conn->query($query);
                         <th>Message</th>
                         <th>Email</th> <!-- Replaced 'Status' with 'Email' -->
                         <th>Submitted At</th>
-                        <th>Last Updated</th>
+                        
                     </tr>
                 </thead>
                 <tbody>
@@ -90,7 +90,7 @@ $result = $conn->query($query);
                                 <?php echo htmlspecialchars($row['email'] ?: 'No email provided'); ?>
                             </td>
                             <td><?php echo htmlspecialchars($row['created_at']); ?></td>
-                            <td><?php echo htmlspecialchars($row['updated_at']); ?></td>
+                            
                         </tr>
                     <?php endwhile; ?>
                 </tbody>

@@ -53,8 +53,7 @@ $cabQuery = "SELECT
                  cb.cab_reg_no, 
                  c.driver_name, 
                  crp.price, 
-                 crp.pickup_location, 
-                 crp.dropoff_location, 
+                 crp.dropoff_location,  -- Removed pickup_location as it doesn't exist in schema
                  cb.booking_date 
              FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
@@ -112,7 +111,6 @@ $cabResult = $conn->query($cabQuery);
                         <div class="bg-green-50 p-4 rounded-lg shadow-sm">
                             <p><strong>Cab:</strong> <?php echo htmlspecialchars($cab['cab_reg_no']); ?></p>
                             <p><strong>Driver:</strong> <?php echo htmlspecialchars($cab['driver_name']); ?></p>
-                            <p><strong>Pickup Location:</strong> <?php echo htmlspecialchars($cab['pickup_location']); ?></p>
                             <p><strong>Dropoff Location:</strong> <?php echo htmlspecialchars($cab['dropoff_location']); ?></p>
                             <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($cab['price']); ?></p>
                             <p><strong>Booking Date:</strong> <?php echo htmlspecialchars($cab['booking_date']); ?></p>

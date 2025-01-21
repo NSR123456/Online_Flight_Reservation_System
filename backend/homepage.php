@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // Start the session to check login status
 session_start();
 
@@ -17,13 +20,16 @@ if ($conn->connect_error) {
 
 // Fetch available flights where seats are available
 $flightsQuery = "
-    SELECT f.flight_no, f.flight_name, f.capacity, as1.available_seats, fs.airline_name
+    SELECT f.flight_no, f.flight_name, f.capacity, as1.available_seats, a.airline_name
     FROM Flights f
     JOIN Flight_Schedule fs ON f.flight_no = fs.flight_no
     JOIN AllocateSeat as1 ON fs.id = as1.schedule_id
+    JOIN BelongTo b ON f.flight_no = b.flight_no
+    JOIN Airlines a ON b.airline_id = a.airline_id
     WHERE as1.available_seats > 0
     LIMIT 5
 ";
+
 
 $flightsResult = $conn->query($flightsQuery);
 

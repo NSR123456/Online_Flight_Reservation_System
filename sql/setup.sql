@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Cabs (
 );
 CREATE TABLE Cab_Route_Price (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    pickup_location VARCHAR(255),
+
     dropoff_location VARCHAR(255),
     price DECIMAL(10, 2)
 );
@@ -59,20 +59,20 @@ CREATE TABLE IF NOT EXISTS Airlines (
 CREATE TABLE IF NOT EXISTS Flight_Schedule (
     id INT PRIMARY KEY AUTO_INCREMENT,
     flight_no VARCHAR(50),
-    airline_name VARCHAR(255),
+
     departure_date DATE,
     departure_time TIME,
     source VARCHAR(100),
     destination VARCHAR(100),
     FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
-    FOREIGN KEY (airline_name) REFERENCES Flights(airline_name)
+
 );
 CREATE TABLE customer_support_info (
     id INT PRIMARY KEY,
     message TEXT NOT NULL,
     email VARCHAR(100) ,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
 );
 
 -- Relationship Tables
@@ -95,11 +95,13 @@ CREATE TABLE IF NOT EXISTS BookCab (
     route_id INT,
     cab_reg_no VARCHAR(50),
     customer_id VARCHAR(255),
+    from_airport_id VARCHAR(255),
     booking_date DATE,
     FOREIGN KEY (route_id) REFERENCES Routes(route_id),
     FOREIGN KEY (cab_reg_no) REFERENCES Cabs(cab_reg_no),
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
 );
+
 
 
 

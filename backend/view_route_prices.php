@@ -2,6 +2,7 @@
 // Admin Dashboard for Viewing Cab Route Prices
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+
 $servername = "localhost";
 $username = "panjas";
 $password = "Panjas@cse1";
@@ -14,8 +15,16 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch Cab Route Prices for display
-$route_prices = $conn->query("SELECT * FROM Cab_Route_Price");
+// Fetch Cab Route Prices for display, joining with Airports for the pickup location
+$route_prices = $conn->query("
+    SELECT 
+        crp.id,
+        a.airport_name AS pickup_location,
+        crp.dropoff_location,
+        crp.price
+    FROM Cab_Route_Price crp
+    JOIN Airports a ON crp.id = a.id
+");
 
 ?>
 
@@ -42,11 +51,11 @@ $route_prices = $conn->query("SELECT * FROM Cab_Route_Price");
             </thead>
             <tbody>
                 <?php if ($route_prices->num_rows > 0): ?>
-                    <?php while($row = $route_prices->fetch_assoc()): ?>
+                    <?php while ($row = $route_prices->fetch_assoc()): ?>
                         <tr>
-                            <td class="py-2 px-4"><?= $row['pickup_location']; ?></td>
-                            <td class="py-2 px-4"><?= $row['dropoff_location']; ?></td>
-                            <td class="py-2 px-4"><?= $row['price']; ?></td>
+                            <td class="py-2 px-4"><?= htmlspecialchars($row['pickup_location']); ?></td>
+                            <td class="py-2 px-4"><?= htmlspecialchars($row['dropoff_location']); ?></td>
+                            <td class="py-2 px-4"><?= htmlspecialchars($row['price']); ?></td>
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>

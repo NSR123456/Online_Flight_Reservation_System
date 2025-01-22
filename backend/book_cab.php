@@ -25,47 +25,42 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Fetch the airport ID for the logged-in user's flight booking
-$sql_flight = "
-    SELECT bf.airport_id
+// Fetch the airports associated with the logged-in user's bookings
+$sql_airports = "
+    SELECT DISTINCT a.id, a.airport_name 
     FROM BookFlight bf
-    JOIN Flight_Schedule fs ON fs.id = bf.schedule_id
+    JOIN Airports a ON bf.airport_id = a.id
     WHERE bf.customer_id = '$customer_id'
 ";
 
-$result_flight = $conn->query($sql_flight);
-$pickup_airport = '';
-
-if ($result_flight->num_rows > 0) {
-    $row = $result_flight->fetch_assoc();
-    $pickup_airport = $row['airport_id']; // Get the airport ID from the booking
-}
+$result_airports = $conn->query($sql_airports);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $cab_reg_no = $_POST['cab_reg_no'];
+    $from_airport_id = $_POST['from_airport_id']; // Selected airport ID
     $dropoff_location = $_POST['dropoff_location'];
-    $booking_date = $_POST['booking_date']; // Get the date from user input
+    $booking_date = $_POST['booking_date'];
 
-    // Fetch the price based on the pickup airport and dropoff location
-    $sql_price = "SELECT price FROM Cab_Route_Price WHERE from_airport_id = '$pickup_airport' AND dropoff_location = '$dropoff_location'";
+    // Fetch the price based on the selected airport and dropoff location
+    $sql_price = "SELECT price FROM Cab_Route_Price WHERE dropoff_location = '$dropoff_location'";
     $result_price = $conn->query($sql_price);
 
     if ($result_price->num_rows > 0) {
         $row = $result_price->fetch_assoc();
         $price = $row['price'];
 
-        // Retrieve the route_id for the selected pickup and dropoff locations
-        $sql_route_id = "SELECT id FROM Cab_Route_Price WHERE from_airport_id = '$pickup_airport' AND dropoff_location = '$dropoff_location'";
+        // Retrieve the route_id for the selected dropoff location
+        $sql_route_id = "SELECT id FROM Cab_Route_Price WHERE dropoff_location = '$dropoff_location'";
         $result_route_id = $conn->query($sql_route_id);
 
         if ($result_route_id->num_rows > 0) {
             $row = $result_route_id->fetch_assoc();
             $route_id = $row['id'];
 
-            // Insert into BookCab table with the retrieved route_id and the user-specified booking date
+            // Insert into BookCab table with the retrieved route_id and user inputs
             $sql_insert = "INSERT INTO BookCab (route_id, cab_reg_no, customer_id, from_airport_id, booking_date) 
-                           VALUES ('$route_id', '$cab_reg_no', '$customer_id', '$pickup_airport', '$booking_date')";
+                           VALUES ('$route_id', '$cab_reg_no', '$customer_id', '$from_airport_id', '$booking_date')";
             if ($conn->query($sql_insert) === TRUE) {
                 echo "Cab booked successfully! Price: " . $price;
             } else {
@@ -82,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!-- HTML Form -->
 <form method="POST">
-    <!-- Cab Registration No (Select available cabs) -->
+    <!-- Cab Registration No -->
     Cab Registration No: 
     <select name="cab_reg_no" required>
         <?php
@@ -96,11 +91,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ?>
     </select><br>
 
-    <!-- Pickup Location (Automatically filled from user's flight booking) -->
-    Pickup Location: 
-    <input type="text" name="pickup_location" value="<?php echo $pickup_airport; ?>" readonly><br>
+    <!-- Airport Selection (Dropdown based on user's bookings) -->
+    Pickup Airport: 
+    <select name="from_airport_id" required>
+        <?php
+        if ($result_airports->num_rows > 0) {
+            while ($row = $result_airports->fetch_assoc()) {
+                echo "<option value='" . $row['id'] . "'>" . htmlspecialchars($row['airport_name']) . "</option>";
+            }
+        } else {
+            echo "<option value=''>No airports found</option>";
+        }
+        ?>
+    </select><br>
 
-    <!-- Dropoff Location (Select available routes) -->
+    <!-- Dropoff Location -->
     Dropoff Location: 
     <select name="dropoff_location" required>
         <?php
@@ -114,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ?>
     </select><br>
 
-    <!-- Booking Date (User Input) -->
+    <!-- Booking Date -->
     Booking Date:
     <input type="date" name="booking_date" required><br>
 

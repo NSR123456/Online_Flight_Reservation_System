@@ -38,11 +38,13 @@ $flightQuery = "SELECT
                     fs.destination, 
                     fs.departure_date, 
                     fs.departure_time, 
-                    t.bill 
+                    t.bill, 
+                    a.airport_name AS airport
                 FROM BookFlight bf
                 JOIN Transactions t ON bf.transaction_id = t.id
                 JOIN Flight_Schedule fs ON bf.schedule_id = fs.id
                 JOIN Flights f ON fs.flight_no = f.flight_no
+                JOIN Airports a ON bf.airport_id = a.id
                 WHERE bf.customer_id = '$passport_id'
                 ORDER BY fs.departure_date DESC, fs.departure_time DESC";
 
@@ -53,7 +55,7 @@ $cabQuery = "SELECT
                  cb.cab_reg_no, 
                  c.driver_name, 
                  crp.price, 
-                 crp.dropoff_location,  -- Removed pickup_location as it doesn't exist in schema
+                 crp.dropoff_location, 
                  cb.booking_date 
              FROM BookCab cb
              JOIN Cabs c ON cb.cab_reg_no = c.reg_no
@@ -95,6 +97,7 @@ $cabResult = $conn->query($cabQuery);
                             <p><strong>To:</strong> <?php echo htmlspecialchars($flight['destination']); ?></p>
                             <p><strong>Departure Date:</strong> <?php echo htmlspecialchars($flight['departure_date']); ?></p>
                             <p><strong>Departure Time:</strong> <?php echo htmlspecialchars($flight['departure_time']); ?></p>
+                            <p><strong>Airport:</strong> <?php echo htmlspecialchars($flight['airport']); ?></p>
                             <p><strong>Amount Paid:</strong> $<?php echo htmlspecialchars($flight['bill']); ?></p>
                         </div>
                     <?php endwhile; ?>

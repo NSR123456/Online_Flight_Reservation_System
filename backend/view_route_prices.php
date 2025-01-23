@@ -21,9 +21,10 @@ $route_prices = $conn->query("
         crp.id,
         a.airport_name AS pickup_location,
         crp.dropoff_location,
-        crp.price
-    FROM Cab_Route_Price crp
-    JOIN Airports a ON crp.id = a.id
+        crp.price 
+    FROM BookCab bc
+    JOIN Airports a ON bc.from_airport_id = a.id
+    JOIN Cab_Route_Price crp ON crp.id = bc.route_id
 ");
 
 ?>

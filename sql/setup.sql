@@ -97,9 +97,10 @@ CREATE TABLE IF NOT EXISTS BookCab (
     customer_id VARCHAR(255),
     from_airport_id VARCHAR(255),
     booking_date DATE,
-    FOREIGN KEY (route_id) REFERENCES Routes(route_id),
+    FOREIGN KEY (route_id) REFERENCES Cab_Route_Price(id),
     FOREIGN KEY (cab_reg_no) REFERENCES Cabs(cab_reg_no),
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+    FOREIGN KEY (from_airport_id) REFERENCES Airports(id)
 );
 
 

@@ -34,8 +34,6 @@ CREATE TABLE IF NOT EXISTS Transactions (
     no_of_seat INT,
     seat_type VARCHAR(50),
     bill NUMERIC(10, 2),
-
-    FOREIGN KEY (customer_id) REFERENCES Customers(passport_id)
 );
 
 CREATE TABLE IF NOT EXISTS Airports (
@@ -59,20 +57,16 @@ CREATE TABLE IF NOT EXISTS Airlines (
 CREATE TABLE IF NOT EXISTS Flight_Schedule (
     id INT PRIMARY KEY AUTO_INCREMENT,
     flight_no VARCHAR(50),
-
     departure_date DATE,
     departure_time TIME,
     source VARCHAR(100),
     destination VARCHAR(100),
-    FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
-
 );
 CREATE TABLE customer_support_info (
     id INT PRIMARY KEY,
     message TEXT NOT NULL,
     email VARCHAR(100) ,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
 );
 
 -- Relationship Tables
@@ -91,7 +85,6 @@ CREATE TABLE IF NOT EXISTS BookFlight (
 
 
 CREATE TABLE IF NOT EXISTS BookCab (
-
     route_id INT,
     cab_reg_no VARCHAR(50),
     customer_id VARCHAR(255),
@@ -104,21 +97,16 @@ CREATE TABLE IF NOT EXISTS BookCab (
 );
 
 
-
-
     CREATE TABLE IF NOT EXISTS AllocateSeat (
     schedule_id INT ,
     flight_no VARCHAR(50),
-
     available_seats INT,
     status ENUM('Available', 'Booked') DEFAULT 'Available',
-
     FOREIGN KEY (flight_no) REFERENCES Flights(flight_no),
     FOREIGN KEY (schedule_id) REFERENCES Flight_Schedule(id)
 );
 
 CREATE TABLE IF NOT EXISTS SupportRequests (
-
     customer_id VARCHAR(255),
     airline_id VARCHAR(50),
     msg_id INT,

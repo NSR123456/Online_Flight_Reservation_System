@@ -1,4 +1,4 @@
-name: PHP Composer
+name: PHP Composer CI
 
 on:
   push:
@@ -11,45 +11,14 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate --strict
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-
-
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress
-
-    # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-    # Docs: https://getcomposer.org/doc/articles/scripts.md
-
-    # - name: Run test suite
-    #   run: composer run-script test
-                - name: New Relic JUnit Reporter
-  # You may pin to the exact commit or the version.
-  # uses: newrelic/junit-reporter-action@a225f3d3753f08921149ddd803040fe593c4ad5c
-  uses: newrelic/junit-reporter-action@v0.3.0
-  with:
-    # Your New Relic Ingest License key.
-    ingestLicenseKey: 
-    # Your New Relic account ID. Custom events representing your test run will be posted to this account.
-    accountId: 
-    # The geographical region for your New Relic account - US or EU. Default: US
-    region: # optional, default is US
-    # The path to the JUnit output file.
-    testOutputPath: 
-    # Any custom attributes to include in JSON format.
-    customAttributes: # optional
-          
+      - name: Install PHP dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
